@@ -1,18 +1,27 @@
-package uz.mirsaidoff.testapp
+package uz.mirsaidoff.testapp.service
 
 import android.app.IntentService
 import android.content.Intent
 import android.os.Handler
+import android.os.HandlerThread
 import android.util.Log
+import uz.mirsaidoff.testapp.common.DELAY_TIME
 import uz.mirsaidoff.testapp.model.PostDao
 import uz.mirsaidoff.testapp.model.PostRepo
+import uz.mirsaidoff.testapp.model.PostsDb
 
-class AddPostService(private val postDao: PostDao) : IntentService(AddPostService::class.java.name) {
+class AddPostService : IntentService("Service") {
 
-    private val handler = Handler()
+    private lateinit var handler: Handler
+    private lateinit var postDao: PostDao
 
     override fun onCreate() {
         super.onCreate()
+        val thread = HandlerThread("")
+        thread.start()
+        handler = Handler(thread.looper)
+
+        postDao = PostsDb.getInstance(this).getPostDao()
         Log.d(TAG, "onCreate")
     }
 
@@ -27,13 +36,12 @@ class AddPostService(private val postDao: PostDao) : IntentService(AddPostServic
     }
 
     companion object {
-        private const val DELAY_TIME = 1_000L / 5
         const val TAG = "AddPostService"
     }
 
     private inner class InsertNewItemRunnable(val postDao: PostDao) : Runnable {
         override fun run() {
-            PostRepo.insertPost(postDao)
+            PostRepo.getInstance(postDao).insertPost()
             handler.postDelayed(this, DELAY_TIME)
         }
     }

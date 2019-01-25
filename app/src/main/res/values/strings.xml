@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TestApp</string>
+    <string name="oops_something_went_wrong">Oops, something went wrong. \nPlease try again.</string>
+    <string name="reload_btn">Reload</string>
 </resources>
