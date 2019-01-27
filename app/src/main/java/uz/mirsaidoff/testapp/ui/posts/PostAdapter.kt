@@ -11,10 +11,12 @@ import kotlinx.android.synthetic.main.post_row.view.*
 import uz.mirsaidoff.testapp.R
 import uz.mirsaidoff.testapp.model.Post
 
-class PostAdapter(val items: ArrayList<Post>,
+class PostAdapter(private val items: MutableList<Post>,
                   context: Context) : RecyclerView.Adapter<PostAdapter.ViewHolder>() {
 
     private val inflater: LayoutInflater = LayoutInflater.from(context)
+    private val diffUtilCallback = PostsDiffUtilCallback(arrayListOf(), arrayListOf())
+    private var lastItemReachedListener: ILastItemReachedListener? = null
 
     override fun onCreateViewHolder(vg: ViewGroup, pos: Int): ViewHolder {
         val view = inflater.inflate(R.layout.post_row, vg, false)
@@ -30,11 +32,24 @@ class PostAdapter(val items: ArrayList<Post>,
             tvBody.text = post.author
             tvDate.text = post.publishedAt
         }
+
+        //if last item is reached while scrolling, do what callback says
+        if (pos == itemCount - 1) {
+            lastItemReachedListener?.onLastItemReached(post)
+        }
     }
 
-    fun setItems(newItems: ArrayList<Post>) {
-        val callback = PostsDiffUtilCallback(newItems, items)
-        val diffResult = DiffUtil.calculateDiff(callback)
+    fun setOnLastItemReachedListener(lastItemCallback: ILastItemReachedListener) {
+        this.lastItemReachedListener = lastItemCallback
+    }
+
+    fun setItems(newItems: MutableList<Post>) {
+        diffUtilCallback.setOldItems(items)
+        diffUtilCallback.setNewItems(newItems)
+        val diffResult = DiffUtil.calculateDiff(diffUtilCallback)
+
+        this.items.clear()
+        this.items.addAll(newItems)
         diffResult.dispatchUpdatesTo(this)
     }
 
@@ -44,8 +59,16 @@ class PostAdapter(val items: ArrayList<Post>,
         val tvDate: TextView = itemView.tv_date
     }
 
-    inner class PostsDiffUtilCallback(private val newItems: ArrayList<Post>,
-                                      private val oldItems: ArrayList<Post>) : DiffUtil.Callback() {
+    inner class PostsDiffUtilCallback(private var newItems: MutableList<Post>,
+                                      private var oldItems: MutableList<Post>) : DiffUtil.Callback() {
+
+        fun setNewItems(newItems: MutableList<Post>) {
+            this.newItems = newItems
+        }
+
+        fun setOldItems(oldItems: MutableList<Post>) {
+            this.oldItems = oldItems
+        }
 
         override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean = oldItems[oldPos].id == newItems[newPos].id
 
@@ -56,5 +79,9 @@ class PostAdapter(val items: ArrayList<Post>,
         //todo generate {@Object.equals}
         override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean = oldItems[oldPos] == newItems[newPos]
 
+    }
+
+    interface ILastItemReachedListener {
+        fun onLastItemReached(post: Post)
     }
 }

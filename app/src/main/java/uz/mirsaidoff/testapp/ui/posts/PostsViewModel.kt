@@ -7,9 +7,14 @@ import uz.mirsaidoff.testapp.model.Post
 
 class PostsViewModel : ViewModel() {
 
-    private val postsLiveData: MutableLiveData<ArrayList<Post>> = MutableLiveData()
+    private val postsLiveData: MutableLiveData<MutableList<Post>> = MutableLiveData()
 
-    fun setPosts(newPosts: List<Post>) {
+    fun setPosts() {
+        val newList = arrayListOf<Post>()
+        postsLiveData.postValue(newList)
+    }
+
+    fun addPosts(newPosts: List<Post>) {
         var existingPosts = postsLiveData.value
         if (existingPosts == null) {
             existingPosts = arrayListOf()
@@ -18,5 +23,5 @@ class PostsViewModel : ViewModel() {
         postsLiveData.postValue(existingPosts)
     }
 
-    fun getPosts(): LiveData<ArrayList<Post>> = postsLiveData
+    fun getPosts(): LiveData<MutableList<Post>> = postsLiveData
 }

@@ -18,7 +18,6 @@ import java.lang.ref.WeakReference
 
 class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
 
-    //    private lateinit var pref: SharedPreferences
     private lateinit var postDao: PostDao
     private lateinit var vm: PostsViewModel
 
@@ -34,7 +33,6 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
         val db = PostsDb.getInstance(this)
         postDao = db.getPostDao()
         vm = ViewModelProviders.of(this).get(PostsViewModel::class.java)
-//        initPrefAndPutSequence()
 
         //async task for populating the db
         PopulateAsync(postDao, this).execute()
@@ -42,30 +40,24 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
 
     override fun onDestroy() {
         super.onDestroy()
+        //save last sequence before living
         val sp = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         sp.edit()
                 .putLong(SEQUENCE_KEY, App.nextSequence())
                 .apply()
     }
-//
-//    private fun initPrefAndPutSequence() {
-//        pref = getPreferences(Context.MODE_PRIVATE)
-//        pref.edit()
-//                .putLong(SEQUENCE_KEY, 0)
-//                .apply()
-//    }
 
     fun startPostExecService() {
         startService(Intent(this, AddPostService::class.java))
     }
 
-    override fun onLoadPosts() {
-        val lastTenItems = postDao.loadLastTenPosts()
-        vm.setPosts(lastTenItems)
+    override fun onLoadPosts(progressListener: IProgressCtrl) {
+        PostRepo.getInstance(postDao).loadLastTenPosts(vm, progressListener)
     }
 
-    override fun onLoadNextTenPosts() {
-
+    //loads next ten posts before given id
+    override fun onLoadNextTenPosts(lastPostId: Long) {
+        PostRepo.getInstance(postDao).loadTenEarlierPosts(vm, id = lastPostId)
     }
 
     override fun onNewPostLoad() {
@@ -73,7 +65,7 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
     }
 
     override fun onClearAllPosts() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        PostRepo.getInstance(postDao).removeAllPosts(vm)
     }
 
     // --------------------------------------------------------------------------

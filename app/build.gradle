@@ -36,4 +36,5 @@ dependencies {
 
     implementation "android.arch.persistence.room:runtime:$room_version"
     kapt "android.arch.persistence.room:compiler:$room_version"
+    implementation 'com.android.support:design:28.0.0'
 }

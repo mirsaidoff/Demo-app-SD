@@ -5,14 +5,17 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.posts_fragment.*
+import kotlinx.android.synthetic.main.posts_fragment.view.*
 import uz.mirsaidoff.testapp.R
+import uz.mirsaidoff.testapp.model.Post
 
-class PostsFragment : Fragment() {
+class PostsFragment : Fragment(), IProgressCtrl {
 
     companion object {
         fun newInstance() = PostsFragment()
@@ -35,16 +38,46 @@ class PostsFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+        initToolbar()
+        initViews()
+    }
 
+    private fun initViews() {
         recycler_posts.layoutManager = LinearLayoutManager(context)
-        recycler_posts.adapter = PostAdapter(arrayListOf(), context!!)
+        val postAdapter = PostAdapter(arrayListOf(), context!!)
+        recycler_posts.adapter = postAdapter
 
-        btn_reload.setOnClickListener { listener?.onLoadPosts() }
-        viewModel = ViewModelProviders.of(this).get(PostsViewModel::class.java)
+        btn_reload.setOnClickListener { listener?.onLoadPosts(this) }
+        viewModel = ViewModelProviders.of(activity!!).get(PostsViewModel::class.java)
         viewModel.getPosts().observe(this, Observer {
-            val postAdapter = recycler_posts.adapter as PostAdapter
-            postAdapter.setItems(it ?: arrayListOf())
+            postAdapter.setItems(it!!)
+        })
+
+        postAdapter.setOnLastItemReachedListener(object : PostAdapter.ILastItemReachedListener {
+            override fun onLastItemReached(post: Post) {
+                listener?.onLoadNextTenPosts(lastPostId = post.id)
+            }
         })
     }
 
+    private fun initToolbar() {
+        val appCompatActivity = activity as AppCompatActivity
+        appCompatActivity.setSupportActionBar(toolbar)
+        appCompatActivity.supportActionBar!!.setDisplayShowTitleEnabled(false)
+        //todo change:delete
+        toolbar.tv_action_title.setOnClickListener {
+            listener?.onClearAllPosts()
+        }
+
+    }
+
+    override fun onStartLoading() {
+        progress.visibility = View.VISIBLE
+        if (empty_container.visibility == View.VISIBLE) empty_container.visibility = View.GONE
+    }
+
+    override fun onFinishLoading() {
+        progress.visibility = View.INVISIBLE
+        if (swipe_container.visibility == View.INVISIBLE) swipe_container.visibility = View.VISIBLE
+    }
 }

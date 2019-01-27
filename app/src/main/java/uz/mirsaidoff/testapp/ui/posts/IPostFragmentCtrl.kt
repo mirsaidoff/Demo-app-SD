@@ -2,9 +2,9 @@ package uz.mirsaidoff.testapp.ui.posts
 
 interface IPostFragmentCtrl {
 
-    fun onLoadPosts()
+    fun onLoadPosts(progressListener: IProgressCtrl)
 
-    fun onLoadNextTenPosts()
+    fun onLoadNextTenPosts(lastPostId:Long)
 
     fun onNewPostLoad()
 
