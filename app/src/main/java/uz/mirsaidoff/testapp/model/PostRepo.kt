@@ -25,6 +25,11 @@ class PostRepo private constructor(private val postDao: PostDao) {
                 private val vm: PostsViewModel,
                 private val progressListener: IProgressCtrl
         ) : AsyncTask<Unit, Unit, List<Post>>() {
+            override fun onPreExecute() {
+                super.onPreExecute()
+                vm.setPosts()
+            }
+
             override fun doInBackground(vararg params: Unit?): List<Post>? {
                 return postDao.loadLastTenPosts()
             }

@@ -8,8 +8,16 @@ import uz.mirsaidoff.testapp.common.SEQUENCE_KEY
 class App : Application() {
 
     companion object {
-        private var sequence = 0L
+        @Volatile
+        private var sequence: Long = 0L
+            @Synchronized set(value) {
+                field = value
+            }
+
         fun nextSequence() = sequence++
+        fun clearSequence() {
+            sequence = 0L
+        }
     }
 
     override fun onCreate() {

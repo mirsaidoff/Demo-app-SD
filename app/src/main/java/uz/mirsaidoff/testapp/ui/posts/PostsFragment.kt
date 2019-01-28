@@ -30,8 +30,8 @@ class PostsFragment : Fragment(), IProgressCtrl {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
         return inflater.inflate(R.layout.posts_fragment, container, false)
     }
@@ -55,9 +55,16 @@ class PostsFragment : Fragment(), IProgressCtrl {
 
         postAdapter.setOnLastItemReachedListener(object : PostAdapter.ILastItemReachedListener {
             override fun onLastItemReached(post: Post) {
-                listener?.onLoadNextTenPosts(lastPostId = post.id)
+                //if post id == 0 then the last post has been reached
+                if (post.id != 0L) {
+                    listener?.onLoadNextTenPosts(lastPostId = post.id)
+                }
             }
         })
+
+        swipe_container.setOnRefreshListener {
+            listener?.onLoadPosts(this)
+        }
     }
 
     private fun initToolbar() {
@@ -69,6 +76,8 @@ class PostsFragment : Fragment(), IProgressCtrl {
             listener?.onClearAllPosts()
         }
 
+        toolbar.navigationContentDescription = "Clear"
+
     }
 
     override fun onStartLoading() {
@@ -78,6 +87,10 @@ class PostsFragment : Fragment(), IProgressCtrl {
 
     override fun onFinishLoading() {
         progress.visibility = View.INVISIBLE
-        if (swipe_container.visibility == View.INVISIBLE) swipe_container.visibility = View.VISIBLE
+        if (swipe_container.visibility == View.INVISIBLE) {
+            swipe_container.visibility = View.VISIBLE
+        } else {
+            swipe_container.isRefreshing = false
+        }
     }
 }

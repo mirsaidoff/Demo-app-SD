@@ -26,8 +26,8 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
         setContentView(R.layout.posts_activity)
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                    .replace(R.id.container, PostsFragment.newInstance())
-                    .commitNow()
+                .replace(R.id.container, PostsFragment.newInstance())
+                .commitNow()
         }
 
         val db = PostsDb.getInstance(this)
@@ -43,8 +43,8 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
         //save last sequence before living
         val sp = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         sp.edit()
-                .putLong(SEQUENCE_KEY, App.nextSequence())
-                .apply()
+            .putLong(SEQUENCE_KEY, App.nextSequence())
+            .apply()
     }
 
     fun startPostExecService() {
@@ -66,13 +66,15 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
 
     override fun onClearAllPosts() {
         PostRepo.getInstance(postDao).removeAllPosts(vm)
+        //sets the sequence to 0
+        App.clearSequence()
     }
 
     // --------------------------------------------------------------------------
     companion object {
         private class PopulateAsync(
-                val postDao: PostDao,
-                postsActivity: PostsActivity
+            val postDao: PostDao,
+            postsActivity: PostsActivity
         ) : AsyncTask<Unit, Unit, Unit>() {
             private val weakActivity = WeakReference<PostsActivity>(postsActivity)
 
