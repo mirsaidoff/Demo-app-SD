@@ -6,7 +6,7 @@ interface IPostFragmentCtrl {
 
     fun onLoadNextTenPosts(lastPostId:Long)
 
-    fun onNewPostLoad()
+    fun onLoadNewPosts()
 
     fun onClearAllPosts()
 }

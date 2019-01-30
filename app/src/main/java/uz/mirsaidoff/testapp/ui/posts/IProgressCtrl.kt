@@ -5,4 +5,6 @@ interface IProgressCtrl {
     fun onStartLoading()
 
     fun onFinishLoading()
+
+    fun onErrorLoading()
 }

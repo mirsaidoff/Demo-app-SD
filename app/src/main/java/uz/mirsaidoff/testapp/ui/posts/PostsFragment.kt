@@ -1,5 +1,6 @@
 package uz.mirsaidoff.testapp.ui.posts
 
+import android.annotation.SuppressLint
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
@@ -14,6 +15,7 @@ import kotlinx.android.synthetic.main.posts_fragment.*
 import kotlinx.android.synthetic.main.posts_fragment.view.*
 import uz.mirsaidoff.testapp.R
 import uz.mirsaidoff.testapp.model.Post
+import uz.mirsaidoff.testapp.model.PostsDb
 
 class PostsFragment : Fragment(), IProgressCtrl {
 
@@ -42,6 +44,7 @@ class PostsFragment : Fragment(), IProgressCtrl {
         initViews()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun initViews() {
         recycler_posts.layoutManager = LinearLayoutManager(context)
         val postAdapter = PostAdapter(arrayListOf(), context!!)
@@ -62,6 +65,19 @@ class PostsFragment : Fragment(), IProgressCtrl {
             }
         })
 
+        viewModel.loadNewPostCount(PostsDb.getNewPostDao(context!!)).observe(this, Observer {
+            if (it!! > 0L) {
+                btn_new_posts.visibility = View.VISIBLE
+                btn_new_posts.text = "$it " + getString(R.string.count_new_posts)
+            } else {
+                btn_new_posts.visibility = View.GONE
+            }
+        })
+        btn_new_posts.setOnClickListener {
+            listener?.onLoadNewPosts()
+            recycler_posts.scrollToPosition(0)
+        }
+
         swipe_container.setOnRefreshListener {
             listener?.onLoadPosts(this)
         }
@@ -75,13 +91,11 @@ class PostsFragment : Fragment(), IProgressCtrl {
         toolbar.tv_action_title.setOnClickListener {
             listener?.onClearAllPosts()
         }
-
-        toolbar.navigationContentDescription = "Clear"
-
     }
 
     override fun onStartLoading() {
         progress.visibility = View.VISIBLE
+        if (constraint_container.visibility == View.INVISIBLE) constraint_container.visibility = View.VISIBLE
         if (empty_container.visibility == View.VISIBLE) empty_container.visibility = View.GONE
     }
 
@@ -92,5 +106,10 @@ class PostsFragment : Fragment(), IProgressCtrl {
         } else {
             swipe_container.isRefreshing = false
         }
+    }
+
+    override fun onErrorLoading() {
+        empty_container.visibility = View.VISIBLE
+        constraint_container.visibility = View.INVISIBLE
     }
 }

@@ -10,6 +10,7 @@ import uz.mirsaidoff.testapp.App
 import uz.mirsaidoff.testapp.R
 import uz.mirsaidoff.testapp.common.PREF_NAME
 import uz.mirsaidoff.testapp.common.SEQUENCE_KEY
+import uz.mirsaidoff.testapp.model.NewPostDao
 import uz.mirsaidoff.testapp.model.PostDao
 import uz.mirsaidoff.testapp.model.PostRepo
 import uz.mirsaidoff.testapp.model.PostsDb
@@ -19,6 +20,7 @@ import java.lang.ref.WeakReference
 class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
 
     private lateinit var postDao: PostDao
+    private lateinit var newPostDao: NewPostDao
     private lateinit var vm: PostsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,12 +32,12 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
                 .commitNow()
         }
 
-        val db = PostsDb.getInstance(this)
-        postDao = db.getPostDao()
+        postDao = PostsDb.getPostDao(this)
+        newPostDao = PostsDb.getNewPostDao(this)
         vm = ViewModelProviders.of(this).get(PostsViewModel::class.java)
 
         //async task for populating the db
-        PopulateAsync(postDao, this).execute()
+        PopulateAsync(postDao, newPostDao, this).execute()
     }
 
     override fun onDestroy() {
@@ -52,20 +54,20 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
     }
 
     override fun onLoadPosts(progressListener: IProgressCtrl) {
-        PostRepo.getInstance(postDao).loadLastTenPosts(vm, progressListener)
+        PostRepo.getInstance(postDao, newPostDao).loadLastTenPosts(vm, progressListener)
     }
 
     //loads next ten posts before given id
     override fun onLoadNextTenPosts(lastPostId: Long) {
-        PostRepo.getInstance(postDao).loadTenEarlierPosts(vm, id = lastPostId)
+        PostRepo.getInstance(postDao, newPostDao).loadTenEarlierPosts(vm, id = lastPostId)
     }
 
-    override fun onNewPostLoad() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun onLoadNewPosts() {
+        PostRepo.getInstance(postDao, newPostDao).loadAllNewPosts(vm)
     }
 
     override fun onClearAllPosts() {
-        PostRepo.getInstance(postDao).removeAllPosts(vm)
+        PostRepo.getInstance(postDao, newPostDao).removeAllPosts(vm)
         //sets the sequence to 0
         App.clearSequence()
     }
@@ -74,6 +76,7 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
     companion object {
         private class PopulateAsync(
             val postDao: PostDao,
+            val newPostDao: NewPostDao,
             postsActivity: PostsActivity
         ) : AsyncTask<Unit, Unit, Unit>() {
             private val weakActivity = WeakReference<PostsActivity>(postsActivity)
@@ -93,7 +96,7 @@ class PostsActivity : AppCompatActivity(), IPostFragmentCtrl {
             //populates the database with 100 dummy data
             private fun populate(postDao: PostDao) {
                 for (i in 1..100) {
-                    PostRepo.getInstance(postDao).insertPost()
+                    PostRepo.getInstance(postDao, newPostDao).insertPost()
                 }
             }
         }

@@ -9,21 +9,21 @@ import uz.mirsaidoff.testapp.ui.posts.PostsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-class PostRepo private constructor(private val postDao: PostDao) {
+class PostRepo private constructor(private val postDao: PostDao, private val newPostDao: NewPostDao) {
 
     companion object {
         @Volatile
         private var INSTANCE: PostRepo? = null
 
-        fun getInstance(postDao: PostDao): PostRepo =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: PostRepo(postDao)
-                }
+        fun getInstance(postDao: PostDao, newPostDao: NewPostDao): PostRepo =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: PostRepo(postDao, newPostDao)
+            }
 
         private class AddPostAsync(
-                private val postDao: PostDao,
-                private val vm: PostsViewModel,
-                private val progressListener: IProgressCtrl
+            private val postDao: PostDao,
+            private val vm: PostsViewModel,
+            private val progressListener: IProgressCtrl
         ) : AsyncTask<Unit, Unit, List<Post>>() {
             override fun onPreExecute() {
                 super.onPreExecute()
@@ -36,12 +36,18 @@ class PostRepo private constructor(private val postDao: PostDao) {
 
             override fun onPostExecute(result: List<Post>?) {
                 super.onPostExecute(result)
-                vm.addPosts(result ?: listOf())
-                progressListener.onFinishLoading()
+                if (result != null) {
+                    vm.addPosts(result)
+                    progressListener.onFinishLoading()
+                } else {
+                    vm.addPosts(listOf())
+                    progressListener.onErrorLoading()
+                }
             }
         }
 
-        private class RemoveAllPostsAsync(private val postDao: PostDao, private val vm: PostsViewModel) : AsyncTask<Unit, Unit, Unit>() {
+        private class RemoveAllPostsAsync(private val postDao: PostDao, private val vm: PostsViewModel) :
+            AsyncTask<Unit, Unit, Unit>() {
             override fun doInBackground(vararg params: Unit?) {
                 postDao.deleteAllPosts()
             }
@@ -52,14 +58,35 @@ class PostRepo private constructor(private val postDao: PostDao) {
             }
         }
 
-        private class LoadEarlierPostsAsync(private val postDao: PostDao, private val vm: PostsViewModel) : AsyncTask<Long, Unit, List<Post>>() {
+        private class LoadEarlierPostsAsync(private val postDao: PostDao, private val vm: PostsViewModel) :
+            AsyncTask<Long, Unit, List<Post>>() {
             override fun doInBackground(vararg params: Long?): List<Post> {
                 return postDao.loadNextTenPostsFromGiven(params[0]!!)
             }
 
             override fun onPostExecute(result: List<Post>?) {
                 super.onPostExecute(result)
+                //todo add progress
                 vm.addPosts(result!!)
+            }
+        }
+
+        private class LoadAllNewPostsAsync(
+            private val postDao: PostDao,
+            private val newPostDao: NewPostDao,
+            private val vm: PostsViewModel
+        ) :
+            AsyncTask<Unit, Unit, List<Post>>() {
+            override fun doInBackground(vararg params: Unit?): List<Post> {
+                val result = postDao.loadAllNewPosts()
+                if (result.isNotEmpty())
+                    newPostDao.removeAllNewPostIds(result[0].id)
+                return result
+            }
+
+            override fun onPostExecute(result: List<Post>) {
+                super.onPostExecute(result)
+                vm.addPosts(result)
             }
         }
     }
@@ -71,6 +98,8 @@ class PostRepo private constructor(private val postDao: PostDao) {
         AddPostAsync(postDao, vm, progressListener).execute()
     }
 
+    fun loadAllNewPosts(vm: PostsViewModel) = LoadAllNewPostsAsync(postDao, newPostDao, vm).execute()
+
     @SuppressLint("SimpleDateFormat")
     fun insertPost() {
         val i = App.nextSequence()
@@ -79,11 +108,12 @@ class PostRepo private constructor(private val postDao: PostDao) {
         post.title = "Title $i"
         post.author = "Author $i"
 
-        val format = SimpleDateFormat("MMMMM dd, yyyy HH:mm")
+        val format = SimpleDateFormat("MMMMM dd, yyyy HH:mm:ss")
         post.publishedAt = format.format(Date())
-        postDao.insertPost(post)
+        val id = postDao.insertPost(post)
+        newPostDao.insertNewPostId(NewPost(id))
 
-        Log.d("Repo", "Inserted $post")
+        Log.d("Repo", "Inserted post with id = $id")
     }
 
     fun removeAllPosts(vm: PostsViewModel) {
